@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FlipCode VM</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Courier New', monospace;
+            background: #0a0e27;
+            color: #e0e0e0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .wrap {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            border-bottom: 3px solid #ff6b35;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            color: #ff6b35;
+            font-size: 2.8em;
+            letter-spacing: -1px;
+            text-shadow: 2px 2px 0 #000;
+        }
+
+        .tagline {
+            color: #7aa2f7;
+            margin-top: 8px;
+            font-size: 0.9em;
+        }
+
+        .workspace {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 25px;
+            margin-bottom: 25px;
+        }
+
+        .box {
+            background: #16213e;
+            border: 2px solid #2a3f5f;
+            padding: 20px;
+        }
+
+        .box h2 {
+            color: #7aa2f7;
+            font-size: 1.1em;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #2a3f5f;
+            padding-bottom: 8px;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 420px;
+            background: #0d1117;
+            color: #c9d1d9;
+            border: 1px solid #30363d;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            resize: vertical;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #58a6ff;
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: bold;
+        }
+
+        .btn-run {
+            background: #238636;
+            color: white;
+            flex: 2;
+        }
+
+        .btn-run:hover { background: #2ea043; }
+
+        .btn-load {
+            background: #1f6feb;
+            color: white;
+            flex: 1;
+        }
+
+        .btn-load:hover { background: #388bfd; }
+
+        .btn-clear {
+            background: #da3633;
+            color: white;
+            flex: 1;
+        }
+
+        .btn-clear:hover { background: #f85149; }
+
+        .btn-export {
+            background: #8957e5;
+            color: white;
+            flex: 1;
+        }
+
+        .btn-export:hover { background: #a371f7; }
+
+        .output-area {
+            background: #0d1117;
+            color: #58a6ff;
+            border: 1px solid #30363d;
+            padding: 15px;
+            min-height: 420px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+
+        .state-box {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            padding: 15px;
+            margin-top: 15px;
+        }
+
+        .state-box h3 {
+            color: #7aa2f7;
+            font-size: 0.95em;
+            margin-bottom: 10px;
+        }
+
+        .trans-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(55px, 1fr));
+            gap: 6px;
+            margin-top: 10px;
+        }
+
+        .trans {
+            background: #1c2333;
+            padding: 8px;
+            text-align: center;
+            font-size: 11px;
+            border: 1px solid #30363d;
+        }
+
+        .trans.active {
+            background: #238636;
+            color: white;
+            border-color: #2ea043;
+            font-weight: bold;
+        }
+
+        .info-section {
+            background: #16213e;
+            border: 2px solid #2a3f5f;
+            padding: 20px;
+        }
+
+        .info-section h3 {
+            color: #ff6b35;
+            margin-bottom: 12px;
+            font-size: 1.2em;
+        }
+
+        .info-section ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .info-section li {
+            margin: 8px 0;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .info-section li:before {
+            content: ">";
+            position: absolute;
+            left: 0;
+            color: #ff6b35;
+        }
+
+        .info-section code {
+            background: #0d1117;
+            color: #58a6ff;
+            padding: 2px 6px;
+            border: 1px solid #30363d;
+            font-size: 13px;
+        }
+
+        .err { color: #f85149; }
+
+        input[type="file"] { display: none; }
+
+        @media (max-width: 900px) {
+            .workspace { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <header>
+            <h1>FlipCode VM</h1>
+            <div class="tagline">1M+ transistors • stateful execution • minimal instruction set</div>
+        </header>
+
+        <div class="workspace">
+            <div class="box">
+                <h2>editor</h2>
+                <textarea id="editor" spellcheck="false"></textarea>
+                <div class="btn-row">
+                    <button class="btn-run" onclick="run()">RUN</button>
+                    <button class="btn-load" onclick="document.getElementById('file').click()">LOAD</button>
+                    <button class="btn-clear" onclick="clear()">CLEAR</button>
+                    <button class="btn-export" onclick="exportCode()">EXPORT</button>
+                </div>
+                <input type="file" id="file" accept=".flip" onchange="load(event)">
+            </div>
+
+            <div class="box">
+                <h2>output</h2>
+                <div class="output-area" id="out">ready...</div>
+                <div class="state-box">
+                    <h3>transistor state</h3>
+                    <div class="trans-grid" id="grid"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="info-section">
+            <h3>spec</h3>
+            <ul>
+                <li><code>flip N</code> - toggle transistor N (0-1048575)</li>
+                <li><code>clock N</code> - N clock cycles, reads T0-T7 as ASCII byte each tick</li>
+                <li><code>end</code> - halt execution</li>
+                <li><code># comment</code> - ignored line</li>
+                <li><strong>total transistors:</strong> 1,048,576</li>
+                <li><strong>storage:</strong> sparse map (only active transistors stored)</li>
+                <li><strong>output mechanism:</strong> T0=bit0, T1=bit1, ..., T7=bit7</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        class VM {
+            constructor() {
+                this.t = new Map();
+                this.max = 1048576;
+                this.out = [];
+                this.halt = false;
+            }
+
+            flip(n) {
+                if (n < 0 || n >= this.max) {
+                    throw new Error(`bad transistor id: ${n}`);
+                }
+                if (this.t.has(n)) {
+                    this.t.delete(n);
+                } else {
+                    this.t.set(n, 1);
+                }
+            }
+
+            tick() {
+                let byte = 0;
+                for (let i = 0; i < 8; i++) {
+                    if (this.t.has(i)) byte |= (1 << i);
+                }
+                if (byte > 0) this.out.push(String.fromCharCode(byte));
+            }
+
+            exec(code) {
+                this.t.clear();
+                this.out = [];
+                this.halt = false;
+
+                const lines = code.split('\n');
+                for (let i = 0; i < lines.length; i++) {
+                    if (this.halt) break;
+
+                    let ln = lines[i].trim();
+                    if (ln === '' || ln.startsWith('#')) continue;
+
+                    if (ln.startsWith('clock ')) {
+                        const ticks = parseInt(ln.substring(6).trim());
+                        if (isNaN(ticks) || ticks < 1) {
+                            throw new Error(`line ${i + 1}: bad tick count "${ln.substring(6).trim()}"`);
+                        }
+                        for (let j = 0; j < ticks; j++) {
+                            this.tick();
+                        }
+                    } else if (ln === 'end') {
+                        this.halt = true;
+                    } else if (ln.startsWith('flip ')) {
+                        const id = parseInt(ln.substring(5).trim());
+                        if (isNaN(id)) {
+                            throw new Error(`line ${i + 1}: bad id "${ln.substring(5).trim()}"`);
+                        }
+                        this.flip(id);
+                    } else {
+                        throw new Error(`line ${i + 1}: unknown cmd "${ln}"`);
+                    }
+                }
+                return this.out.join('');
+            }
+        }
+
+        const vm = new VM();
+
+        function updateDisplay() {
+            const g = document.getElementById('grid');
+            g.innerHTML = '';
+            
+            for (let i = 0; i < 128; i++) {
+                const d = document.createElement('div');
+                d.className = vm.t.has(i) ? 'trans active' : 'trans';
+                d.textContent = `T${i}`;
+                g.appendChild(d);
+            }
+            
+            const info = document.createElement('div');
+            info.style.gridColumn = '1 / -1';
+            info.style.textAlign = 'center';
+            info.style.marginTop = '10px';
+            info.style.color = '#7aa2f7';
+            info.innerHTML = `${vm.t.size.toLocaleString()} active / ${vm.max.toLocaleString()} total<br><small>showing first 128</small>`;
+            g.appendChild(info);
+        }
+
+        function run() {
+            const code = document.getElementById('editor').value;
+            const outEl = document.getElementById('out');
+            
+            try {
+                outEl.textContent = 'running...\n';
+                const result = vm.exec(code);
+                outEl.textContent = `${result}\n\n---\ndone`;
+                updateDisplay();
+            } catch (e) {
+                outEl.innerHTML = `<span class="err">error: ${e.message}</span>`;
+            }
+        }
+
+        function clear() {
+            document.getElementById('editor').value = '';
+            document.getElementById('out').textContent = 'ready...';
+            vm.t.clear();
+            vm.out = [];
+            vm.halt = false;
+            updateDisplay();
+        }
+
+        function load(e) {
+            const f = e.target.files[0];
+            if (f) {
+                const r = new FileReader();
+                r.onload = function(ev) {
+                    document.getElementById('editor').value = ev.target.result;
+                    document.getElementById('out').textContent = `loaded: ${f.name}`;
+                };
+                r.readAsText(f);
+            }
+        }
+
+        function exportCode() {
+            const code = document.getElementById('editor').value;
+            if (!code.trim()) {
+                document.getElementById('out').textContent = 'nothing to export';
+                return;
+            }
+            
+            const blob = new Blob([code], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'program.flip';
+            a.click();
+            URL.revokeObjectURL(url);
+            document.getElementById('out').textContent = 'exported program.flip';
+        }
+
+        updateDisplay();
+
+        window.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('editor').value = `# hello world
+
+flip 3
+flip 6
+clock 1
+
+flip 3
+flip 0
+flip 2
+flip 5
+clock 1
+
+flip 0
+flip 3
+clock 2
+
+flip 0
+flip 1
+clock 1
+
+flip 0
+flip 1
+flip 2
+flip 3
+flip 6
+clock 1
+
+flip 0
+flip 1
+flip 2
+flip 4
+flip 5
+flip 6
+clock 1
+
+flip 3
+flip 4
+flip 5
+clock 1
+
+flip 0
+flip 2
+flip 3
+flip 4
+clock 1
+
+flip 1
+flip 2
+flip 3
+flip 4
+clock 1
+
+flip 3
+clock 1
+
+flip 0
+flip 2
+flip 6
+clock 1
+
+end`;
+        });
+    </script>
+</body>
+</html>

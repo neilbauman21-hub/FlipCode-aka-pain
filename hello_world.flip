@@ -1,0 +1,74 @@
+# hello world in flipcode
+# flip toggles transistor state
+# clock N outputs N characters
+
+# H = 72 = 0b01001000
+flip 3
+flip 6
+clock 1
+
+# e = 101 = 0b01100101
+flip 3
+flip 0
+flip 2
+flip 5
+clock 1
+
+# l = 108 = 0b01101100
+flip 0
+flip 3
+clock 2
+
+# o = 111 = 0b01101111
+flip 0
+flip 1
+clock 1
+
+# space = 32 = 0b00100000
+flip 0
+flip 1
+flip 2
+flip 3
+flip 6
+clock 1
+
+# W = 87 = 0b01010111
+flip 0
+flip 1
+flip 2
+flip 4
+flip 5
+flip 6
+clock 1
+
+# o = 111
+flip 3
+flip 4
+flip 5
+clock 1
+
+# r = 114 = 0b01110010
+flip 0
+flip 2
+flip 3
+flip 4
+clock 1
+
+# l = 108
+flip 1
+flip 2
+flip 3
+flip 4
+clock 1
+
+# d = 100 = 0b01100100
+flip 3
+clock 1
+
+# ! = 33 = 0b00100001
+flip 0
+flip 2
+flip 6
+clock 1
+
+end

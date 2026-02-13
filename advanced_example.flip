@@ -1,0 +1,36 @@
+# advanced example
+# demonstrates high transistor ids
+
+# flip some high memory transistors
+flip 1000
+flip 5000
+flip 100000
+flip 500000
+flip 1000000
+
+# output "test"
+
+# t = 116 = 0b01110100
+flip 2
+flip 4
+flip 5
+flip 6
+clock 1
+
+# e = 101 = 0b01100101
+flip 4
+flip 0
+clock 1
+
+# s = 115 = 0b01110011
+flip 5
+flip 4
+flip 1
+clock 1
+
+# t = 116
+flip 1
+flip 4
+clock 1
+
+end
